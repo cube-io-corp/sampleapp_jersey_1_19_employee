@@ -1,6 +1,9 @@
 package com.journaldev.router;
 
+import java.io.IOException;
 import java.net.URISyntaxException;
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -14,6 +17,8 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.xml.bind.JAXBElement;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.journaldev.exception.DepNotFoundException;
 import com.journaldev.model.DepRequest;
 import com.journaldev.model.DepResponse;
@@ -26,6 +31,18 @@ import io.opentracing.util.GlobalTracer;
 
 @Path("/dept")
 public class DepRouter {
+	
+	private static ObjectMapper mapper = new ObjectMapper();
+
+	@GET
+	@Path("/health")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response health() throws JsonProcessingException {
+
+		//return Response.ok().build();
+		return Response.ok(mapper.writeValueAsString(new HashMap<String , Object>(){{put("message" , "All is Well From Department !!!!");}})).type(MediaType.APPLICATION_JSON).build();
+	}
+
 
 	@POST
 	@Path("/getDept")
@@ -59,7 +76,7 @@ public class DepRouter {
 	@Path("/getDepth2")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response getDepth2(@Context HttpHeaders headers, @QueryParam("count") int studentCount)
-		throws URISyntaxException {
+			throws URISyntaxException, IOException {
 		System.out.println("Received called to dept/getDepth2");
 
 		final Span span = GlobalTracer.get().activeSpan();
@@ -82,7 +99,7 @@ public class DepRouter {
 
 
 		String deptBaseURL = fromEnvOrSystemProperties("officeURL");
-		String uri = deptBaseURL+"/office/office/getDepth2";
+		String uri = deptBaseURL+"/office/office/getDepth2" + "?count="+(long)(studentCount*1.5);
 
 
 		Client client = Client.create();
@@ -94,7 +111,17 @@ public class DepRouter {
 		System.out.println(
 			"Recieved response from office/getDepth2. \nStatus" + response.getStatus()
 				+ "\nResponse: " + response.toString());
-		return Response.ok().type(MediaType.APPLICATION_JSON).entity(response.getEntity(String.class)).build();
+		String officeResp = response.getEntity(String.class);
+
+		Map resp = new HashMap<String , Object>(){{
+			put("message" , "HI from GET dept depth1");
+			put("MultBy6Value" , studentCount*6);
+			put("officeResp" , mapper.readValue(officeResp , HashMap.class));
+		}};
+		String jsonStr = mapper.writeValueAsString(resp);
+
+
+		return Response.ok().type(MediaType.APPLICATION_JSON).entity(jsonStr).build();
 	}
 
 
@@ -102,7 +129,7 @@ public class DepRouter {
 	@Path("/postDepth2")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response postDepth2(@Context HttpHeaders headers, @QueryParam("count") int studentCount)
-		throws URISyntaxException {
+			throws URISyntaxException, IOException {
 		System.out.println("Received called to dept/postDepth2");
 
 		final Span span = GlobalTracer.get().activeSpan();
@@ -125,7 +152,7 @@ public class DepRouter {
 
 
 		String deptBaseURL = fromEnvOrSystemProperties("officeURL");
-		String uri = deptBaseURL+"/office/office/postDepth2";
+		String uri = deptBaseURL+"/office/office/postDepth2" + "?count="+(long)(studentCount*2.5);
 
 
 		Client client = Client.create();
@@ -137,7 +164,15 @@ public class DepRouter {
 		System.out.println(
 			"Recieved response from office/postDepth2. \nStatus" + response.getStatus()
 				+ "\nResponse: " + response.toString());
-		return Response.ok().type(MediaType.APPLICATION_JSON).entity(response.getEntity(String.class)).build();
+		String officeResp = response.getEntity(String.class);
+		Map resp =  new HashMap<String , Object>(){{
+			put("message","HI from POST dept depth1");
+			put("MultBy7Value" , studentCount*7 );
+			put("officeResp" , mapper.readValue(officeResp , HashMap.class));
+		}};
+		String jsonStr = mapper.writeValueAsString(resp);
+
+		return Response.ok().type(MediaType.APPLICATION_JSON).entity(jsonStr).build();
 	}
 
 }
